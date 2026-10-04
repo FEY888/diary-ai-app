@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: always
+    volumes:
+      - ./diary_ai_data:/var/lib/postgresql/data
+    ports:
+      - '5439:5432'
+    environment:
+      POSTGRES_USER: diary
+      POSTGRES_PASSWORD: diary
+      POSTGRES_DB: diary_service
