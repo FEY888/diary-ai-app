@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DiaryService } from '../diary/diary.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DiaryAnalysis } from './entities/diary_analysis.entity';
 import { Repository } from 'typeorm';
 import { AiService } from '../ai/ai.service';
+import { DiaryAnalysisResponseDto } from './dto/response.dto';
 
 @Injectable()
 export class DiaryAnalysisService {
@@ -28,10 +29,8 @@ export class DiaryAnalysisService {
   });
 
   if (existAnalysis) {
-    console.log('기존 분석 반환:', existAnalysis);
-    return existAnalysis;
+    return this.ResponseDto(existAnalysis);
   }
-  console.log('새 ai 분석 실행');
 
   const aiResult = await this.aiService.analyzeDiary(diary.content);
 
@@ -40,7 +39,9 @@ export class DiaryAnalysisService {
     ...aiResult,
   });
 
-  return this.diaryAnalysisRepository.save(analysis);
+  const saveAnalysis = await this.diaryAnalysisRepository.save(analysis);
+
+  return this.ResponseDto(saveAnalysis);
 }
 
     // 다이어리 ai 분석 조회
@@ -60,5 +61,20 @@ export class DiaryAnalysisService {
         }
 
         return analysis;
+    }
+
+    private ResponseDto(
+        analysis: DiaryAnalysis,
+    ): DiaryAnalysisResponseDto {
+        
+        return {
+            id: analysis.id,
+            summary: analysis.summary,
+            primaryEmotion: analysis.primaryEmotion,
+            keywords: analysis.keywords ?? [],
+            concerns: analysis.concerns ?? [],
+            needs: analysis.needs ?? [],
+            createAt: analysis.createdAt,
+        };
     }
 }
