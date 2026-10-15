@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Diary } from './entities/diary.entity';
 import { UsersService } from '../users/users.service';
 import { CreateDiaryDto } from './dto/create-diary.dto';
@@ -17,6 +17,7 @@ export class DiaryService {
         @InjectRepository(DiaryAnalysis)
         private readonly diaryAnalysisRepository: Repository<DiaryAnalysis>,
         private readonly usersService: UsersService,
+        private readonly dataSource: DataSource,
     ) {}
 
     // 다이어리 작성(생성)
@@ -74,29 +75,39 @@ export class DiaryService {
         return diary;
     }
 
-    // 일기 수정 업데이트
-    async updateDiary(userId: string, diaryId: number, updateDiaryDto: UpdateDiaryDto) {
+    // 다이어리 수정 업데이트(다이어리 내용 수정시 기존 ai 분석 삭제 트랜잭션 적용)
+    async updateDiary(
+        userId: string,
+        diaryId: number,
+        updateDiaryDto: UpdateDiaryDto
+    ) {
         const diary = await this.diaryFindOne(userId, diaryId);
 
-        const isContentChanged = updateDiaryDto.content ! == undefined && updateDiaryDto.content !== diary.content;
-
-        this.diaryRepository.merge(
-            diary,
+        const isContentChanged = 
+        updateDiaryDto.content !== undefined && updateDiaryDto.content !== diary.content;
+        
+        this.diaryRepository.merge(diary,
             updateDiaryDto,
         );
 
-        const updateDiary = await this.diaryRepository.save(diary);
+        return this.dataSource.transaction(async (manager) => {
+            const diaryRepository = manager.getRepository(Diary);
 
-        if(isContentChanged) {
-            await this.diaryAnalysisRepository.delete({
-                diary: {
-                    id: diaryId,
-                }
-            });
+            const diaryAnalysisRepository = manager.getRepository(DiaryAnalysis);
 
+            const updateDiary = await diaryRepository.save(diary);
+
+
+            if(isContentChanged) {
+                await diaryAnalysisRepository.delete({
+                    diary: {
+                        id: diaryId,
+                    }
+                });
+            }
+            
             return updateDiary;
-        }
-
+        })
     }
 
     // 다이어리 삭제
@@ -106,5 +117,6 @@ export class DiaryService {
         return this.diaryRepository.remove(diary);
     }
 
+   
 
 }
