@@ -1,14 +1,17 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { DiaryAnalysisResult } from '../auth/types/diary_analysis_result.type';
 
 @Injectable()
 export class AiService {
+    private readonly logger = new Logger(AiService.name);
     private readonly openai: OpenAI
+    
 
     constructor(
-        private readonly configService: ConfigService
+        private readonly configService: ConfigService,
+        
     ) {
 
         this.openai = new OpenAI({
@@ -18,6 +21,7 @@ export class AiService {
 
    async analyzeDiary(content: string): Promise<DiaryAnalysisResult> {
     try{
+
   const response = await this.openai.responses.create({
     model: 'gpt-5.6-luna',
 
@@ -96,7 +100,7 @@ export class AiService {
 
   return JSON.parse(response.output_text);
     }catch(error) {
-        console.error('OpenAi API 호출 실패', error);
+       this.logger.error('OpenAi API 호출 실패', error instanceof Error ? error.stack : String(error));
 
         throw new ServiceUnavailableException('AI 분석 서비스에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
