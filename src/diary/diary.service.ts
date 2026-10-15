@@ -6,6 +6,8 @@ import { CreateDiaryDto } from './dto/create-diary.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UpdateDiaryDto } from './dto/update-diary.dto';
 import { DiaryAnalysis } from '../diary_analysis/entities/diary_analysis.entity';
+import { DiaryPaginationDto } from './dto/diary-pagination.dto';
+
 
 @Injectable()
 export class DiaryService {
@@ -32,18 +34,26 @@ export class DiaryService {
         return this.diaryRepository.save(diary);
     }
     
-    // 내 다이어리 목록 조회
-    async diaryFindAll(userId: string) {
-        return this.diaryRepository.find({
+    // 내 다이어리 목록 조회(page pagination)
+    async diaryFindAll(userId: string, diaryPaginationDto: DiaryPaginationDto) {
+        const [diaries, count] = await this.diaryRepository.findAndCount({
             where: {
                 user: {
-                    id: userId
+                    id: userId,
                 },
             },
+            skip: diaryPaginationDto.take * (diaryPaginationDto.page - 1),
+            take: diaryPaginationDto.take,
+            
             order: {
                 diaryDate: 'DESC',
-            }
+            },
         });
+
+        return {
+            data: diaries,
+            total: count,
+        };
     }
 
     // 내 다이어리 1개 상세 조회

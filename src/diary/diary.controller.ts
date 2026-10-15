@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { DiaryService } from './diary.service';
 import { AccessTokenGuard } from '../auth/guard/access-token.guard';
 import { CurrentUser } from '../auth/decorator/current-user.decorator';
 import { CreateDiaryDto } from './dto/create-diary.dto';
 import { UpdateDiaryDto } from './dto/update-diary.dto';
+import { DiaryPaginationDto } from './dto/diary-pagination.dto';
 
 @UseGuards(AccessTokenGuard)
 @Controller('diary')
@@ -22,9 +23,10 @@ export class DiaryController {
   // 다이어리 전체 조회
   @Get()
   findAllDiaries(
-    @CurrentUser('sub') userId: string
+    @CurrentUser('sub') userId: string,
+    @Query() query: DiaryPaginationDto,
   ) {
-    return this.diaryService.diaryFindAll(userId);
+    return this.diaryService.diaryFindAll(userId, query);
   }
 
   // 다이어리 상세 조회
