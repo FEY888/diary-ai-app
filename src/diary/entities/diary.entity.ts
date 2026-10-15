@@ -1,9 +1,10 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, ManyToOne, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Users } from "../../users/entities/user.entity";
 import { DiaryAnalysis } from "../../diary_analysis/entities/diary_analysis.entity";
 import { Exclude } from "class-transformer";
 
 @Entity('diaries')
+@Index('IDX_diaries_user_diary_date', ['user', 'diaryDate'])
 export class Diary {
     @PrimaryGeneratedColumn()
     id!: number;
