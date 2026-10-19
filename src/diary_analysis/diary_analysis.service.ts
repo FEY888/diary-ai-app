@@ -29,7 +29,7 @@ export class DiaryAnalysisService {
   });
 
   if (existAnalysis) {
-    return this.ResponseDto(existAnalysis);
+    return this.toResponseDto(existAnalysis);
   }
 
   const aiResult = await this.aiService.analyzeDiary(diary.content);
@@ -41,7 +41,7 @@ export class DiaryAnalysisService {
 
   const saveAnalysis = await this.diaryAnalysisRepository.save(analysis);
 
-  return this.ResponseDto(saveAnalysis);
+  return this.toResponseDto(saveAnalysis);
 }
 
     // 다이어리 ai 분석 조회
@@ -60,10 +60,10 @@ export class DiaryAnalysisService {
             throw new NotFoundException('다이어리 분석 결과가 없습니다.');
         }
 
-        return analysis;
+        return this.toResponseDto(analysis);
     }
 
-    private ResponseDto(
+    private toResponseDto(
         analysis: DiaryAnalysis,
     ): DiaryAnalysisResponseDto {
         
@@ -74,7 +74,7 @@ export class DiaryAnalysisService {
             keywords: analysis.keywords ?? [],
             concerns: analysis.concerns ?? [],
             needs: analysis.needs ?? [],
-            createAt: analysis.createdAt,
+            createdAt: analysis.createdAt,
         };
     }
 }

@@ -7,7 +7,6 @@ import { Users } from '../users/entities/user.entity';
 import { JwtUser } from './types/jwt-user.type';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { use } from 'passport';
 
 @Injectable()
 export class AuthService {
