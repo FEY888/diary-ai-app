@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsOptional, IsString, Length } from "class-validator";
+import { IsOptional, IsString, Length, ValidateIf } from "class-validator";
 
 export class UpdateProfileDto {
 
@@ -9,7 +9,7 @@ export class UpdateProfileDto {
         minLength: 2,
         maxLength: 30,
     })
-    @IsOptional()
+    @ValidateIf((_,value) => value !== undefined)
     @IsString()
     @Length(2, 30)
     nickname?: string;
