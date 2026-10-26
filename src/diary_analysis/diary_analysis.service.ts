@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { DiaryService } from '../diary/diary.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DiaryAnalysis } from './entities/diary_analysis.entity';
@@ -20,6 +20,7 @@ export class DiaryAnalysisService {
     async createAnalysis(userId: string, diaryId: number) {
   const diary = await this.diaryService.diaryFindOne(userId, diaryId);
 
+    // 기존 ai 분석 조회
   const existAnalysis = await this.diaryAnalysisRepository.findOne({
     where: {
       diary: {
@@ -32,6 +33,25 @@ export class DiaryAnalysisService {
     return this.toResponseDto(existAnalysis);
   }
 
+  const acquired = await this.diaryService.tryStartAnalysis(diaryId);
+
+  if(!acquired) {
+    throw new ConflictException('이미 다이어리 AI분석 진행 중입니다.');
+  }
+
+  try{
+    const existing = await this.diaryAnalysisRepository.findOne({
+      where: {
+        diary: {
+          id: diaryId
+        },
+      },
+    });
+
+    if(existing) {
+      return this.toResponseDto(existing);
+    }
+
   const aiResult = await this.aiService.analyzeDiary(diary.content);
 
   const analysis = this.diaryAnalysisRepository.create({
@@ -42,6 +62,11 @@ export class DiaryAnalysisService {
   const saveAnalysis = await this.diaryAnalysisRepository.save(analysis);
 
   return this.toResponseDto(saveAnalysis);
+
+  } finally {
+    await this.diaryService.finishAnalysis(diaryId);
+}
+  
 }
 
     // 다이어리 ai 분석 조회

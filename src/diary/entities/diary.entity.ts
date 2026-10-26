@@ -25,6 +25,13 @@ export class Diary {
     })
     diaryDate!: string;
 
+    @Column({
+        type: 'varchar',
+        length: 20,
+        default: 'IDLE',
+    })
+    analysisStatus!: 'IDLE' | 'PROCESSING';
+
     @Exclude()
     @ManyToOne(() => Users,(user) => user.diaries, {
         nullable: false,

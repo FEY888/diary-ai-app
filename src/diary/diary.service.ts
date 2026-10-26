@@ -117,6 +117,29 @@ export class DiaryService {
         return this.diaryRepository.remove(diary);
     }
 
+    // 분석 요청 동시에 들어왔을 경우 postgresql 조건부 UPDATE 제어 시작
+    async tryStartAnalysis(diaryId: number) {
+        const result = await this.diaryRepository.update({
+            id: diaryId,
+            analysisStatus: 'IDLE',
+        },
+        {
+            analysisStatus: 'PROCESSING',
+    });
+
+    return result.affected === 1;
+    }
    
+    // 분석 작업 제어 종료
+    async finishAnalysis(diaryId: number) {
+        await this.diaryRepository.update({
+            id:diaryId,
+            analysisStatus: 'PROCESSING',
+        },
+        {
+            analysisStatus: 'IDLE',
+        });
+    }
+
 
 }
