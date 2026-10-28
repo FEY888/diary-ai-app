@@ -135,6 +135,7 @@ export class DiaryService {
             {
                 analysisStatus: 'PROCESSING',
                 analysisStartedAt: now,
+                updatedAt: () => '"updatedAt"', // 수정 시각 자동 갱신 막기
             },
     );
 
@@ -151,6 +152,7 @@ export class DiaryService {
         {
             analysisStatus: 'IDLE',
             analysisStartedAt: null,
+            updatedAt: () => '"updatedAt"', // 원래 값 그대로 넣음
         });
     }
 
