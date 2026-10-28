@@ -14,8 +14,6 @@ export class DiaryService {
     constructor(
         @InjectRepository(Diary)
         private readonly diaryRepository: Repository<Diary>,
-        @InjectRepository(DiaryAnalysis)
-        private readonly diaryAnalysisRepository: Repository<DiaryAnalysis>,
         private readonly usersService: UsersService,
         private readonly dataSource: DataSource,
     ) {}

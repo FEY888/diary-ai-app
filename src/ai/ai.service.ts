@@ -1,7 +1,7 @@
 import { Injectable, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { DiaryAnalysisResult } from '../auth/types/diary_analysis_result.type';
+import { DiaryAnalysisResult } from './types/diary-analysis-result.type';
 
 @Injectable()
 export class AiService {

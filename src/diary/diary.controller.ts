@@ -15,7 +15,7 @@ import { ApiAccessTokenResponse } from '../common/swagger/api-auth-response.deco
 @ApiBearerAuth()
 @ApiAccessTokenResponse()
 @UseGuards(AccessTokenGuard)
-@Controller('diary')
+@Controller('diaries')
 export class DiaryController {
   constructor(private readonly diaryService: DiaryService) {}
 

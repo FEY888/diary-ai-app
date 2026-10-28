@@ -3,7 +3,7 @@ import { UsersService } from './users.service';
 import { AccessTokenGuard } from '../auth/guard/access-token.guard';
 import { CurrentUser } from '../auth/decorator/current-user.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { ApiAcceptedResponse, ApiBadRequestResponse, ApiBearerAuth, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserResponseDto } from './dto/user-response.dto';
 import { ApiAccessTokenResponse } from '../common/swagger/api-auth-response.decorator';
 
