@@ -32,6 +32,12 @@ export class Diary {
     })
     analysisStatus!: 'IDLE' | 'PROCESSING';
 
+    @Column({
+        type: 'timestamptz',
+        nullable: true,
+    })
+    analysisStartedAt!: Date | null;
+
     @Exclude()
     @ManyToOne(() => Users,(user) => user.diaries, {
         nullable: false,
