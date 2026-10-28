@@ -16,6 +16,8 @@ export class AiService {
 
         this.openai = new OpenAI({
             apiKey: this.configService.getOrThrow<string>('OPENAI_API_KEY'),
+            timeout: 60_000,
+            maxRetries: 0,
         });
     }
 

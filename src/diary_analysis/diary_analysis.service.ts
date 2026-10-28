@@ -33,9 +33,9 @@ export class DiaryAnalysisService {
     return this.toResponseDto(existAnalysis);
   }
 
-  const acquired = await this.diaryService.tryStartAnalysis(diaryId);
+  const lockStartedAt = await this.diaryService.tryStartAnalysis(diaryId);
 
-  if(!acquired) {
+  if(!lockStartedAt) {
     throw new ConflictException('이미 다이어리 AI분석 진행 중입니다.');
   }
 
@@ -64,7 +64,7 @@ export class DiaryAnalysisService {
   return this.toResponseDto(saveAnalysis);
 
   } finally {
-    await this.diaryService.finishAnalysis(diaryId);
+    await this.diaryService.finishAnalysis(diaryId, lockStartedAt);
 }
   
 }

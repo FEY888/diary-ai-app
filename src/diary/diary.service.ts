@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, LessThanOrEqual, Repository } from 'typeorm';
 import { Diary } from './entities/diary.entity';
 import { UsersService } from '../users/users.service';
 import { CreateDiaryDto } from './dto/create-diary.dto';
@@ -117,25 +117,40 @@ export class DiaryService {
 
     // 분석 요청 동시에 들어왔을 경우 postgresql 조건부 UPDATE 제어 시작
     async tryStartAnalysis(diaryId: number) {
-        const result = await this.diaryRepository.update({
-            id: diaryId,
-            analysisStatus: 'IDLE',
-        },
-        {
-            analysisStatus: 'PROCESSING',
-    });
+        const ANALYSIS_LOCK_TTL_MS = 5 * 60 * 1000;
+        const now = new Date();
+        const expireBefore = new Date(now.getTime() - ANALYSIS_LOCK_TTL_MS);
 
-    return result.affected === 1;
+        const result = await this.diaryRepository.update([
+            {
+                id: diaryId, 
+                analysisStatus: 'IDLE',
+            },
+            {
+                id: diaryId,
+                analysisStatus: 'PROCESSING',
+                analysisStartedAt: LessThanOrEqual(expireBefore),
+            },
+        ],
+            {
+                analysisStatus: 'PROCESSING',
+                analysisStartedAt: now,
+            },
+    );
+
+    return result.affected === 1 ? now : null;
     }
    
     // 분석 작업 제어 종료
-    async finishAnalysis(diaryId: number) {
+    async finishAnalysis(diaryId: number, startedAt: Date) {
         await this.diaryRepository.update({
             id:diaryId,
             analysisStatus: 'PROCESSING',
+            analysisStartedAt: startedAt,
         },
         {
             analysisStatus: 'IDLE',
+            analysisStartedAt: null,
         });
     }
 

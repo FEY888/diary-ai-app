@@ -15,8 +15,8 @@ describe('DiaryAnalysisService', () => {
 
   const diaryServiceMock = {
     diaryFindOne: jest.fn(),
-    tryStartAnalysis: jest.fn<(diaryId: number) => Promise<boolean>>(),
-    finishAnalysis: jest.fn<(diaryId: number) => Promise<void>>(),
+    tryStartAnalysis: jest.fn<(diaryId: number) => Promise<Date | null>>(),
+    finishAnalysis: jest.fn<(diaryId: number, startedAt: Date) => Promise<void>>(),
   };
 
   const aiServiceMock = {
@@ -26,7 +26,7 @@ describe('DiaryAnalysisService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    diaryServiceMock.tryStartAnalysis.mockResolvedValue(true);
+    diaryServiceMock.tryStartAnalysis.mockResolvedValue(new Date('2026-10-29T00:00:00Z'));
     diaryServiceMock.finishAnalysis.mockResolvedValue(undefined);
 
     service = new DiaryAnalysisService(
@@ -108,10 +108,14 @@ describe('DiaryAnalysisService', () => {
   });
 
   it('OpenAI 호출에 실패하면 분석 결과를 DB에 저장하지 않는다.', async () => {
+    const startedAt = new Date('2026-10-29T00:00:00Z');
+    diaryServiceMock.tryStartAnalysis.mockResolvedValue(startedAt);
+
     diaryServiceMock.diaryFindOne.mockImplementation(async() => ({
       id: 4,
       content: '오늘 기분이 좋다.',
     }));
+
 
     repositoryMock.findOne.mockImplementation(async () => null);
 
@@ -123,7 +127,8 @@ describe('DiaryAnalysisService', () => {
 
     expect(repositoryMock.create).not.toHaveBeenCalled();
     expect(repositoryMock.save).not.toHaveBeenCalled();
-    expect(diaryServiceMock.finishAnalysis).toHaveBeenCalledWith(4);
+    expect(diaryServiceMock.finishAnalysis).toHaveBeenCalledWith(4, startedAt);
+    
   });
 
   // ai 분석 동시 요청 문제 테스트
@@ -148,11 +153,11 @@ describe('DiaryAnalysisService', () => {
     repositoryMock.save.mockImplementation((data: any) => data);
 
     let attempt = 0;
-
+    const startedAt = new Date('2026-10-29T00:00:00Z');
     diaryServiceMock.tryStartAnalysis.mockImplementation(async () => {
       attempt++;
 
-     return attempt === 1;
+     return attempt === 1 ? startedAt : null;
     });
 
     const results = await Promise.allSettled([
@@ -164,6 +169,7 @@ describe('DiaryAnalysisService', () => {
     expect(results[1].status).toBe('rejected');
     expect(aiServiceMock.analyzeDiary).toHaveBeenCalledTimes(1);
     expect(diaryServiceMock.finishAnalysis).toHaveBeenCalledTimes(1);
+    expect(diaryServiceMock.finishAnalysis).toHaveBeenCalledWith(4, startedAt);
 
   });
 });
