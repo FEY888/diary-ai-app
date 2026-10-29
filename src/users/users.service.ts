@@ -44,6 +44,10 @@ export class UsersService {
 
   // 사용자 프로필 닉네임 업데이트
   async updateProfile(userId: string, updateProfileDto:UpdateProfileDto) {
+    if(updateProfileDto.nickname === undefined) {
+      return this.findById(userId);
+    }
+
     await this.usersRepository.update(userId, updateProfileDto);
     
     return this.findById(userId);
