@@ -34,8 +34,8 @@ export class DiaryAnalysisResponseDto {
     concerns!: string[];
 
     @ApiProperty({
-        description: '다이어리 내용 분석 후 필요 사항',
-        example: ['공부에 도움 되는 서적 추천'],
+        description: '다이어리에서 드러나는 심리적·현실적 욕구',
+        example: ['휴식', '성장'],
         type: [String],
     })
     needs!: string[];

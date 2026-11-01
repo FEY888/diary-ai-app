@@ -2,7 +2,7 @@ import { Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, UseGu
 import { DiaryAnalysisService } from './diary_analysis.service';
 import { CurrentUser } from '../auth/decorator/current-user.decorator';
 import { AccessTokenGuard } from '../auth/guard/access-token.guard';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiConflictResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 import { ApiAccessTokenResponse } from '../common/swagger/api-auth-response.decorator';
 import { DiaryAnalysisResponseDto } from './dto/response.dto';
 
@@ -35,6 +35,9 @@ export class DiaryAnalysisController {
   })
   @ApiNotFoundResponse({
     description: '다이어리를 찾을 수 없거나 해당 사용자의 다이어리가 아님',
+  })
+  @ApiConflictResponse({
+    description: '같은 다이어리의 AI 분석이 이미 진행 중',
   })
   @ApiServiceUnavailableResponse({
     description: 'OpenAI API 장애로 AI 분석 서비스를 사용할 수 없음',
