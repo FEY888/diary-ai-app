@@ -7,6 +7,8 @@ import { DiaryAnalysisModule } from './diary_analysis/diary_analysis.module';
 import { AuthModule } from './auth/auth.module';
 import { AiModule } from './ai/ai.module';
 import typeorm from './config/typeorm';
+import { APP_FILTER } from '@nestjs/core';
+import { AllExceptionFilter } from './common/exception-filter/http.exception-filter';
 
 @Module({
   imports: [
@@ -25,5 +27,8 @@ import typeorm from './config/typeorm';
     AuthModule,
     AiModule
   ],
+  providers:[{
+    provide: APP_FILTER, useClass: AllExceptionFilter,
+  }],
 })
 export class AppModule {}
