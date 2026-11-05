@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
@@ -9,6 +9,7 @@ import { AiModule } from './ai/ai.module';
 import typeorm from './config/typeorm';
 import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionFilter } from './common/exception-filter/http.exception-filter';
+import { LogMiddleware } from './common/log_middleware/log.middleware';
 
 @Module({
   imports: [
@@ -18,17 +19,25 @@ import { AllExceptionFilter } from './common/exception-filter/http.exception-fil
       load: [typeorm],
     }),
     TypeOrmModule.forRootAsync({
-      inject:[ConfigService],
-      useFactory: async (configService: ConfigService) => configService.getOrThrow('typeorm'),
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) =>
+        configService.getOrThrow('typeorm'),
     }),
     UsersModule,
     DiaryModule,
     DiaryAnalysisModule,
     AuthModule,
-    AiModule
+    AiModule,
   ],
-  providers:[{
-    provide: APP_FILTER, useClass: AllExceptionFilter,
-  }],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionFilter,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LogMiddleware).exclude('api', 'api/*splat').forRoutes('*');
+  }
+}
