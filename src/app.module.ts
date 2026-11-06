@@ -7,9 +7,10 @@ import { DiaryAnalysisModule } from './diary_analysis/diary_analysis.module';
 import { AuthModule } from './auth/auth.module';
 import { AiModule } from './ai/ai.module';
 import typeorm from './config/typeorm';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AllExceptionFilter } from './common/exception-filter/http.exception-filter';
 import { LogMiddleware } from './common/log_middleware/log.middleware';
+import { minutes, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -23,6 +24,15 @@ import { LogMiddleware } from './common/log_middleware/log.middleware';
       useFactory: async (configService: ConfigService) =>
         configService.getOrThrow('typeorm'),
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: minutes(1),
+          limit: 60,
+        },
+      ],
+      errorMessage: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+    }),
     UsersModule,
     DiaryModule,
     DiaryAnalysisModule,
@@ -33,6 +43,10 @@ import { LogMiddleware } from './common/log_middleware/log.middleware';
     {
       provide: APP_FILTER,
       useClass: AllExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

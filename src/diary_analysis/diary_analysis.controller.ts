@@ -1,10 +1,30 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { DiaryAnalysisService } from './diary_analysis.service';
 import { CurrentUser } from '../auth/decorator/current-user.decorator';
 import { AccessTokenGuard } from '../auth/guard/access-token.guard';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiConflictResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ApiAccessTokenResponse } from '../common/swagger/api-auth-response.decorator';
 import { DiaryAnalysisResponseDto } from './dto/response.dto';
+import { minutes, Throttle } from '@nestjs/throttler';
 
 @ApiTags('Diary Analysis')
 @ApiBearerAuth()
@@ -16,9 +36,16 @@ export class DiaryAnalysisController {
 
   @Post(':diaryId/analysis')
   @HttpCode(HttpStatus.OK)
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: minutes(1),
+    },
+  })
   @ApiOperation({
     summary: '다이어리 AI 분석 생성',
-    description: '다이어리 내용을 OpenAI로 분석합니다. 기존 AI 분석이 존재하면 OpenAI를 다시 호출하지 않고 기존 분석 결과를 반환합니다.',
+    description:
+      '다이어리 내용을 OpenAI로 분석합니다. 기존 AI 분석이 존재하면 OpenAI를 다시 호출하지 않고 기존 분석 결과를 반환합니다.',
   })
   @ApiParam({
     name: 'diaryId',
@@ -44,7 +71,7 @@ export class DiaryAnalysisController {
   })
   async createAnalysis(
     @CurrentUser('sub') userId: string,
-    @Param('diaryId', ParseIntPipe) diaryId: number, 
+    @Param('diaryId', ParseIntPipe) diaryId: number,
   ) {
     return this.diaryAnalysisService.createAnalysis(userId, diaryId);
   }
@@ -52,7 +79,7 @@ export class DiaryAnalysisController {
   @Get(':diaryId/analysis')
   @ApiOperation({
     summary: '다이어리 AI 분석 조회',
-    description: '기존에 생성된 다이어리 AI 분석 결과를 조회합니다.'
+    description: '기존에 생성된 다이어리 AI 분석 결과를 조회합니다.',
   })
   @ApiParam({
     name: 'diaryId',
