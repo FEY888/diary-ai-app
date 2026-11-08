@@ -19,7 +19,7 @@
 ### 핵심 기능
 
 - JWT 인증 (Access / Refresh Token, Refresh Token Rotation)
-- 다이어리 CRUD, 본인 다이어리만 접근
+- 다이어리 CRUD, 본인 다이어리만 접근, 같은 날짜 중복 작성 방지
 - 페이지 기반 목록 조회
 - OpenAI 기반 다이어리 분석 생성 · 조회
 
@@ -27,10 +27,11 @@
 
 | 분류           | 기술                                                                                                      | 근거                                                           |
 | -------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Backend        | TypeScript, NestJS 11, Passport JWT, argon2, class-validator, Swagger                                     | `package.json`, `src/main.ts`                                  |
+| Backend        | TypeScript, NestJS 11, Passport JWT, argon2, class-validator, Swagger, @nestjs/throttler                  | `package.json`, `src/main.ts`                                  |
 | Database       | PostgreSQL 17, TypeORM (마이그레이션으로 스키마 관리, `synchronize: false`)                               | `docker-compose.yaml`, `src/config/typeorm.ts`                 |
 | AI             | OpenAI Node SDK, Responses API + JSON Schema 구조화 출력                                                  | `src/ai/ai.service.ts`                                         |
 | Infrastructure | AWS EC2 (수동 배포, forever로 프로세스 실행), AWS RDS (production DB, SSL 연결), Docker Compose (로컬 DB) | `docker-compose.yaml`, `src/config/typeorm.ts`, `package.json` |
+| CI             | GitHub Actions (main 대상 PR · main push 시 npm ci → build → test)                                        | `.github/workflows/ci.yml`                                     |
 | Test           | Jest, ts-jest                                                                                             | `package.json`                                                 |
 
 ## 3. 시스템 아키텍처
@@ -48,10 +49,11 @@ NestJS 안에서 요청은 다음 순서로 처리됩니다.
 
 | 단계 | 구성 요소                                        | 역할                                                            |
 | ---- | ------------------------------------------------ | --------------------------------------------------------------- |
-| 1    | `AccessTokenGuard` / `RefreshTokenGuard`         | Bearer 토큰 검증 (Passport JWT)                                 |
-| 2    | 전역 `ValidationPipe` (`whitelist`, `transform`) | DTO 검증, 정의되지 않은 필드 제거                               |
-| 3    | Controller → Service                             | 비즈니스 로직, TypeORM으로 DB 접근, `AiService`로 OpenAI 호출   |
-| 4    | 전역 `ClassSerializerInterceptor`                | 응답에서 `@Exclude()` 필드(`password`, `refreshTokenHash`) 제거 |
+| 1    | 전역 `ThrottlerGuard`                            | IP 기준 요청 횟수 제한, 초과 시 429                             |
+| 2    | `AccessTokenGuard` / `RefreshTokenGuard`         | Bearer 토큰 검증 (Passport JWT)                                 |
+| 3    | 전역 `ValidationPipe` (`whitelist`, `transform`) | DTO 검증, 정의되지 않은 필드 제거                               |
+| 4    | Controller → Service                             | 비즈니스 로직, TypeORM으로 DB 접근, `AiService`로 OpenAI 호출   |
+| 5    | 전역 `ClassSerializerInterceptor`                | 응답에서 `@Exclude()` 필드(`password`, `refreshTokenHash`) 제거 |
 
 ### 모듈 의존 관계
 
@@ -78,11 +80,13 @@ flowchart LR
 | 재발급             | 새 Refresh Token을 발급하고 해시를 교체 (Rotation)                                | 이전 Refresh Token은 더 이상 통과하지 못함 |
 | 로그아웃           | `refreshTokenHash`를 `NULL`로 변경                                                | 서버 측에서 재발급 차단                    |
 | 응답 노출 차단     | `password`, `refreshTokenHash`에 `@Exclude()` + 전역 `ClassSerializerInterceptor` | 엔티티를 그대로 반환해도 민감 필드 제외    |
+| 요청 횟수 제한     | 전역 `ThrottlerGuard`로 엔드포인트별 IP당 1분 60회. 로그인(`POST /auth/signin`) · AI 분석 생성(`POST /diaries/:diaryId/analysis`)은 1분 5회 | 비밀번호 무차별 대입과 OpenAI 비용 남용 완화 |
 
 ### 다이어리 CRUD
 
 - 모든 조회 · 수정 · 삭제는 `WHERE id = :id AND userId = :userId`로 조회합니다. 다른 사용자의 다이어리는 **404**로 응답해 존재 여부를 노출하지 않습니다.
 - 입력 검증: 제목 1~30자, 본문 1~5000자, `diaryDate`는 날짜 문자열.
+- 같은 날짜 중복 방지: 작성 시 같은 날짜에 내 다이어리가 이미 있으면 **409**로 응답합니다. 수정으로 날짜를 바꿀 수 있지만, 바꾸려는 날짜에 내 다른 다이어리가 있으면 409로 응답합니다(수정 중인 다이어리 자신은 제외). 저장 전에 서비스에서 조회해 확인합니다.
 - 수정 DTO는 `PartialType(..., { skipNullProperties: false })`로 만들어 필드 생략은 허용하고, `null` 입력은 거부합니다. (NOT NULL 컬럼에 `null`이 들어가 500이 나는 것을 막음)
 
 ### 다이어리 목록 및 페이지네이션
@@ -205,13 +209,15 @@ Swagger: 서버 실행 후 `http://localhost:3000/api`. 토큰은 `Authorization
 | POST   | `/auth/refresh`              | Refresh | 토큰 재발급 (Rotation)                                                 | 200, 401           |
 | GET    | `/users/me`                  | Access  | 내 정보 조회                                                           | 200, 404           |
 | PATCH  | `/users/me`                  | Access  | 닉네임 수정                                                            | 200, 400           |
-| POST   | `/diaries`                   | Access  | 다이어리 작성                                                              | 201, 400           |
+| POST   | `/diaries`                   | Access  | 다이어리 작성 (같은 날짜에 이미 있으면 409)                                | 201, 400, 409      |
 | GET    | `/diaries?page=&take=`       | Access  | 내 다이어리 목록 (`page` ≥ 1, `take` 1~100, 기본 20)                       | 200, 400           |
 | GET    | `/diaries/:id`               | Access  | 다이어리 상세                                                              | 200, 404           |
-| PATCH  | `/diaries/:id`               | Access  | 다이어리 수정 (본문 변경 시 분석 삭제)                                     | 200, 400, 404      |
+| PATCH  | `/diaries/:id`               | Access  | 다이어리 수정 (본문 변경 시 분석 삭제, 바꾸려는 날짜에 다른 다이어리가 있으면 409) | 200, 400, 404, 409 |
 | DELETE | `/diaries/:id`               | Access  | 다이어리 삭제 (분석 CASCADE 삭제)                                          | 200, 404           |
 | POST   | `/diaries/:diaryId/analysis` | Access  | AI 분석 생성. 이미 있으면 저장된 결과 반환                             | 200, 404, 409, 503 |
 | GET    | `/diaries/:diaryId/analysis` | Access  | AI 분석 조회                                                           | 200, 404           |
+
+요청 횟수 제한을 넘으면 모든 엔드포인트가 `429 Too Many Requests`를 응답합니다.
 
 ## 9. 실행 방법
 
@@ -253,7 +259,7 @@ production 실행(`npm run start:prod`)은 전역으로 설치된 `forever`를 �
 
 ### 자동화 테스트 (Jest, `npm test`)
 
-Repository · 외부 의존성을 Mock으로 대체한 **단위 테스트**입니다. 4개 파일, 11개 케이스.
+Repository · 외부 의존성을 Mock으로 대체한 **단위 테스트**입니다. 4개 파일, 11개 케이스. main 대상 PR과 main push마다 GitHub Actions가 빌드와 이 테스트를 자동으로 실행합니다.
 
 | 대상                                     | 검증 내용                                                                                                                                                                               |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -276,12 +282,13 @@ Repository · 외부 의존성을 Mock으로 대체한 **단위 테스트**입�
 **알려진 한계**
 
 - 분석 중에 본문을 수정하면 수정 전 본문의 분석 결과가 저장될 수 있습니다.
-- 목록 정렬 키가 `diaryDate` 하나뿐이라, 같은 날짜의 다이어리가 페이지 경계에 걸리면 순서가 바뀔 수 있습니다.
+- 같은 날짜 중복은 서비스의 사전 조회로만 막고 DB UNIQUE 제약은 두지 않았습니다. 같은 날짜로 거의 동시에 들어온 요청은 둘 다 저장될 수 있고, 그러면 그 날짜 다이어리끼리의 목록 순서가 정해지지 않습니다.
+- 이 기능은 이전에 저장된 같은 날짜 다이어리를 정리하지 않습니다. 그런 데이터가 있으면, 수정할 때 원래 날짜를 그대로 보내도 409가 날 수 있습니다.
+- 페이지 기반(OFFSET) 조회라, 페이지를 넘기는 사이 다이어리가 추가·삭제되거나 날짜가 바뀌면 항목이 중복되거나 빠질 수 있습니다.
 
 **기술 과제**
 
 - 실제 PostgreSQL 기반 통합 · e2e 테스트를 저장소에 포함해 자동화
-- 로그인 · AI 분석 API Rate Limit
 - 환경 변수 검증, RDS SSL 인증서 검증 (`rejectUnauthorized: false` 제거)
-- Docker 이미지화, GitHub Actions CI (현재는 EC2에 수동 배포)
+- Docker 이미지화 및 배포 자동화 (현재는 EC2에 수동 배포)
 - HTTPS 적용 (현재 HTTP) 및 운영 환경 Swagger 비공개 처리
