@@ -59,3 +59,9 @@ diary_ai_data/
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Claude Code local instructions
+/CLAUDE.md
+
+# Sentry Config File
+.sentryclirc

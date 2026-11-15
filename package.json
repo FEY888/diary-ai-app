@@ -25,7 +25,8 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org superfey --project node-nestjs ./dist && sentry-cli sourcemaps upload --org superfey --project node-nestjs ./dist"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -38,10 +39,13 @@
     "@nestjs/swagger": "^11.4.7",
     "@nestjs/throttler": "^6.7.1",
     "@nestjs/typeorm": "^12.0.2",
+    "@sentry/cli": "^2.58.6",
+    "@sentry/nestjs": "^11.12.0",
     "@types/passport-jwt": "^4.0.1",
     "argon2": "^0.45.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "ioredis": "^5.11.1",
     "openai": "^7.27.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.23.0",
