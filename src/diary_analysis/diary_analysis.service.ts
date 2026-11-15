@@ -63,6 +63,7 @@ export class DiaryAnalysisService {
     }
 
     try {
+      const lockedDiary = await this.diaryService.diaryFindOne(userId, diaryId);
       const existing = await this.diaryAnalysisRepository.findOne({
         where: {
           diary: {
@@ -77,10 +78,10 @@ export class DiaryAnalysisService {
 
       await this.consumeAiQuota(userId);
 
-      const aiResult = await this.aiService.analyzeDiary(diary.content);
+      const aiResult = await this.aiService.analyzeDiary(lockedDiary.content);
 
       const analysis = this.diaryAnalysisRepository.create({
-        diary,
+        diary: lockedDiary,
         ...aiResult,
       });
 

@@ -12,6 +12,8 @@ import { UpdateDiaryDto } from './dto/update-diary.dto';
 import { DiaryAnalysis } from '../diary_analysis/entities/diary_analysis.entity';
 import { DiaryPaginationDto } from './dto/diary-pagination.dto';
 
+const ANALYSIS_LOCK_TTL_MS = 5 * 60 * 1000;
+
 @Injectable()
 export class DiaryService {
   constructor(
@@ -90,7 +92,7 @@ export class DiaryService {
     diaryId: number,
     updateDiaryDto: UpdateDiaryDto,
   ) {
-    const diary = await this.diaryFindOne(userId, diaryId);
+    await this.diaryFindOne(userId, diaryId);
 
     if (updateDiaryDto.diaryDate !== undefined) {
       const existDiary = await this.diaryRepository.findOne({
@@ -110,28 +112,50 @@ export class DiaryService {
       }
     }
 
-    const isContentChanged =
-      updateDiaryDto.content !== undefined &&
-      updateDiaryDto.content !== diary.content;
-
-    this.diaryRepository.merge(diary, updateDiaryDto);
-
     return this.dataSource.transaction(async (manager) => {
       const diaryRepository = manager.getRepository(Diary);
-
       const diaryAnalysisRepository = manager.getRepository(DiaryAnalysis);
 
-      const updateDiary = await diaryRepository.save(diary);
+      const currentDiary = await diaryRepository.findOne({
+        where: {
+          id: diaryId,
+        },
+        lock: {
+          mode: 'pessimistic_write',
+        },
+      });
 
-      if (isContentChanged) {
-        await diaryAnalysisRepository.delete({
-          diary: {
-            id: diaryId,
-          },
-        });
+      if (!currentDiary) {
+        throw new NotFoundException('다이어리를 찾을 수 없습니다.');
       }
 
-      return updateDiary;
+      const isContentChanged =
+        updateDiaryDto.content !== undefined &&
+        updateDiaryDto.content !== currentDiary.content;
+
+      const isAnalyzing =
+        currentDiary.analysisStatus === 'PROCESSING' &&
+        currentDiary.analysisStartedAt !== null &&
+        currentDiary.analysisStartedAt.getTime() >
+          Date.now() - ANALYSIS_LOCK_TTL_MS;
+
+      if (isContentChanged && isAnalyzing) {
+        throw new ConflictException(
+          'AI 분석이 진행 중이라 다이어리 본문 내용을 수정할 수 없습니다. 분석이 끝난 뒤 다시 시도해 주세요.',
+        );
+      }
+
+      await diaryRepository.update({ id: diaryId }, updateDiaryDto);
+
+      if (isContentChanged) {
+        await diaryAnalysisRepository.delete({ diary: { id: diaryId } });
+      }
+
+      return diaryRepository.findOne({
+        where: {
+          id: diaryId,
+        },
+      });
     });
   }
 
@@ -144,7 +168,6 @@ export class DiaryService {
 
   // 분석 요청 동시에 들어왔을 경우 postgresql 조건부 UPDATE 제어 시작
   async tryStartAnalysis(diaryId: number) {
-    const ANALYSIS_LOCK_TTL_MS = 5 * 60 * 1000;
     const now = new Date();
     const expireBefore = new Date(now.getTime() - ANALYSIS_LOCK_TTL_MS);
 
