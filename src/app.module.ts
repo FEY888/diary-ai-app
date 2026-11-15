@@ -11,9 +11,11 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AllExceptionFilter } from './common/exception-filter/http.exception-filter';
 import { LogMiddleware } from './common/log_middleware/log.middleware';
 import { minutes, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { SentryModule } from '@sentry/nestjs/setup';
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV || 'local'}`,
@@ -34,6 +36,7 @@ import { minutes, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       errorMessage: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
     }),
     UsersModule,
+
     DiaryModule,
     DiaryAnalysisModule,
     AuthModule,
