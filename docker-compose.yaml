@@ -10,3 +10,8 @@ services:
       POSTGRES_USER: diary
       POSTGRES_PASSWORD: diary
       POSTGRES_DB: diary_service
+  redis:
+    image: redis:7
+    restart: always
+    ports:
+      - '127.0.0.1:6379:6379'

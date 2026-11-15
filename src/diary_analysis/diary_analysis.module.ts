@@ -5,12 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DiaryAnalysis } from './entities/diary_analysis.entity';
 import { DiaryModule } from '../diary/diary.module';
 import { AiModule } from '../ai/ai.module';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([DiaryAnalysis]),
     DiaryModule,
     AiModule,
+    RedisModule,
   ],
   controllers: [DiaryAnalysisController],
   providers: [DiaryAnalysisService],
