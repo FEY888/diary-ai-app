@@ -101,4 +101,26 @@ describe('Diary E2e', () => {
       .send({ title: '날짜 테스트', content: '본문', diaryDate: '2026-02-30' })
       .expect(400);
   });
+
+  it('같은 날짜에 다이어리를 두 개 작성하면 두 번째는 409', async () => {
+    const sameDiaryDate = {
+      title: '중복 테스트',
+      content: '본문',
+      diaryDate: '2026-10-29',
+    };
+
+    // 첫 번째 다이어리 작성은 성공
+    await request(app.getHttpServer())
+      .post('/diaries')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send(sameDiaryDate)
+      .expect(201);
+
+    // 같은 날짜에 또 작성 시 거절
+    await request(app.getHttpServer())
+      .post('/diaries')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send(sameDiaryDate)
+      .expect(409);
+  });
 });
