@@ -23,6 +23,7 @@
     "migration:show:prod": "NODE_ENV=production npm run typeorm -- -d ./src/config/typeorm.ts migration:show",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:e2e": "NODE_ENV=test DB_DATABASE=diary_test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
