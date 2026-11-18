@@ -1,33 +1,33 @@
-import { Injectable, ServiceUnavailableException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  ServiceUnavailableException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { DiaryAnalysisResult } from './types/diary-analysis-result.type';
 
+const PRIMARY_EMOTION_MAX_LENGTH = 50;
+
 @Injectable()
 export class AiService {
-    private readonly logger = new Logger(AiService.name);
-    private readonly openai: OpenAI
-    
+  private readonly logger = new Logger(AiService.name);
+  private readonly openai: OpenAI;
 
-    constructor(
-        private readonly configService: ConfigService,
-        
-    ) {
+  constructor(private readonly configService: ConfigService) {
+    this.openai = new OpenAI({
+      apiKey: this.configService.getOrThrow<string>('OPENAI_API_KEY'),
+      timeout: 60_000,
+      maxRetries: 0,
+    });
+  }
 
-        this.openai = new OpenAI({
-            apiKey: this.configService.getOrThrow<string>('OPENAI_API_KEY'),
-            timeout: 60_000,
-            maxRetries: 0,
-        });
-    }
+  async analyzeDiary(content: string): Promise<DiaryAnalysisResult> {
+    try {
+      const response = await this.openai.responses.create({
+        model: 'gpt-5.6-luna',
 
-   async analyzeDiary(content: string): Promise<DiaryAnalysisResult> {
-    try{
-
-  const response = await this.openai.responses.create({
-    model: 'gpt-5.6-luna',
-
-     instructions: `
+        instructions: `
 너는 사용자의 개인 일기를 분석하는 AI다.
 
 일기의 내용만 근거로 분석하라.
@@ -56,58 +56,67 @@ export class AiService {
 
 반드시 일기 내용에서 근거를 찾을 수 있는 내용만 작성하라.
 `,
-    input: content,
+        input: content,
 
-    text: {
-      format: {
-        type: 'json_schema',
-        name: 'diary_analysis',
-        strict: true,
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'diary_analysis',
+            strict: true,
 
-        schema: {
-          type: 'object',
-          properties: {
-            summary: { type: 'string' },
-            primaryEmotion: { type: 'string' },
+            schema: {
+              type: 'object',
+              properties: {
+                summary: { type: 'string' },
+                primaryEmotion: { type: 'string' },
 
-            keywords: {
-              type: 'array',
-              items: { type: 'string' },
-            },
+                keywords: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
 
-            concerns: {
-              type: 'array',
-              items: { type: 'string' },
-            },
+                concerns: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
 
-            needs: {
-              type: 'array',
-              items: { type: 'string' },
+                needs: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+              },
+
+              required: [
+                'summary',
+                'primaryEmotion',
+                'keywords',
+                'concerns',
+                'needs',
+              ],
+
+              additionalProperties: false,
             },
           },
-
-          required: [
-            'summary',
-            'primaryEmotion',
-            'keywords',
-            'concerns',
-            'needs',
-          ],
-
-          additionalProperties: false,
         },
-      },
-    },
-  });
+      });
 
-  return JSON.parse(response.output_text);
-    }catch(error) {
-       this.logger.error('OpenAi API 호출 실패', error instanceof Error ? error.stack : String(error));
+      const result: DiaryAnalysisResult = JSON.parse(response.output_text);
 
-        throw new ServiceUnavailableException('AI 분석 서비스에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      if (result.primaryEmotion.length > PRIMARY_EMOTION_MAX_LENGTH) {
+        throw new Error('AI의 primaryEmotion 응답이 너무 깁니다.');
+      }
+
+      return result;
+      JSON.parse(response.output_text);
+    } catch (error) {
+      this.logger.error(
+        'OpenAi API 호출 실패',
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      throw new ServiceUnavailableException(
+        'AI 분석 서비스에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.',
+      );
     }
-  
+  }
 }
-       
-    }
-
