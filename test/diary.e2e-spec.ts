@@ -12,6 +12,7 @@ import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
 import { REDIS_CLIENT } from '../src/redis/redis.module';
 import { TokenResponseDto } from '../src/auth/dto/token-response.dto';
+import { DiaryResponseDto } from '../src/diary/dto/diary-response.dto';
 
 const TEST_DATABASE = 'diary_test';
 
@@ -26,8 +27,9 @@ describe('Diary E2e', () => {
   beforeAll(async () => {
     // 테스트 DB가 아니면 중단
     if (process.env.DB_DATABASE !== TEST_DATABASE) {
-      throw new Error(`E2E 테스트는 ${TEST_DATABASE}에서만 실행됩니다. 
-                현재 : ${process.env.DB_DATABASE}`);
+      throw new Error(
+        `E2E 테스트는 ${TEST_DATABASE}에서만 실행됩니다. 현재 : ${process.env.DB_DATABASE}`,
+      );
     }
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -71,7 +73,7 @@ describe('Diary E2e', () => {
     await app.close();
   });
 
-  it('로그인하면 accessToken 발급', async () => {
+  it('로그인하면 accessToken 발급', () => {
     expect(accessToken).toBeDefined();
   });
 
@@ -86,7 +88,7 @@ describe('Diary E2e', () => {
     await request(app.getHttpServer()).post('/diaries').send(diary).expect(401);
   });
 
-  it('발급받은 토큰이 있고 다이어리 작성하는 경우', async () => {
+  it('발급받은 토큰이 있고 다이어리 작성하는 경우 201', async () => {
     await request(app.getHttpServer())
       .post('/diaries')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -122,5 +124,46 @@ describe('Diary E2e', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send(sameDiaryDate)
       .expect(409);
+  });
+
+  it('다른 사람의 다이어리를 조회하면 404', async () => {
+    // 다른 사용자(B) 회원가입 + 로그인
+    const otherEmail = `e2e-other-${Date.now()}@test.com`;
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email: otherEmail, nickname: '다른 사용자', password })
+      .expect(201);
+
+    const otherLoginResponse = await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: otherEmail, password })
+      .expect(200);
+    const otherAccessToken = (otherLoginResponse.body as TokenResponseDto)
+      .accessToken;
+
+    // B의 본인 다이어리 작성
+    const createResponse = await request(app.getHttpServer())
+      .post('/diaries')
+      .set('Authorization', `Bearer ${otherAccessToken}`)
+      .send({
+        title: '다른 사용자의 다이어리',
+        content: '비밀',
+        diaryDate: '2026-11-02',
+      })
+      .expect(201);
+    // B의 다이어리 id 값 받아두기
+    const otherDiaryId = (createResponse.body as DiaryResponseDto).id;
+
+    // B는 본인 다이어리 조회 가능
+    await request(app.getHttpServer())
+      .get(`/diaries/${otherDiaryId}`)
+      .set('Authorization', `Bearer ${otherAccessToken}`)
+      .expect(200);
+
+    // B가 아닌 다른 사용자가 B의 다이어리 조회 -> 404
+    await request(app.getHttpServer())
+      .get(`/diaries/${otherDiaryId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404);
   });
 });
