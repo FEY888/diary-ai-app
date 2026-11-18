@@ -13,6 +13,7 @@ import { AiService } from '../src/ai/ai.service';
 import { REDIS_CLIENT } from '../src/redis/redis.module';
 import { TokenResponseDto } from '../src/auth/dto/token-response.dto';
 import { DiaryResponseDto } from '../src/diary/dto/diary-response.dto';
+import { DiaryAnalysisResponseDto } from '../src/diary_analysis/dto/response.dto';
 
 const TEST_DATABASE = 'diary_test';
 
@@ -165,5 +166,29 @@ describe('Diary E2e', () => {
       .get(`/diaries/${otherDiaryId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(404);
+  });
+
+  it('다이어리 AI 분석을 요청하면 200, 임의로 만든 가짜 AI 결과가 저장된다.', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/diaries')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        title: '분석 테스트',
+        content: '오늘은 기분이 좋았다.',
+        diaryDate: '2026-11-14',
+      })
+      .expect(201);
+    const diaryId = (createResponse.body as DiaryResponseDto).id;
+
+    // 분석 요청
+    const analysisResponse = await request(app.getHttpServer())
+      .post(`/diaries/${diaryId}/analysis`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    // 가짜 AI 결과가 나왔는지 확인
+    expect(
+      (analysisResponse.body as DiaryAnalysisResponseDto).primaryEmotion,
+    ).toBe('기쁨');
   });
 });
