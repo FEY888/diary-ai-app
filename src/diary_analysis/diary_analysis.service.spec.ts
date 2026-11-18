@@ -115,6 +115,7 @@ describe('DiaryAnalysisService', () => {
     await expect(service.createAnalysis('user-a', 4)).rejects.toThrow(
       NotFoundException,
     );
+    expect(aiServiceMock.analyzeDiary).not.toHaveBeenCalled();
   });
 
   it('OpenAI 호출에 실패하면 분석 결과를 DB에 저장하지 않는다.', async () => {
