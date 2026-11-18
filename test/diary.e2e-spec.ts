@@ -93,4 +93,12 @@ describe('Diary E2e', () => {
       .send(diary)
       .expect(201);
   });
+
+  it('달력에 없는 날짜로 다이어리 작성하면 400', async () => {
+    await request(app.getHttpServer())
+      .post('/diaries')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ title: '날짜 테스트', content: '본문', diaryDate: '2026-02-30' })
+      .expect(400);
+  });
 });
