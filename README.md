@@ -257,6 +257,7 @@ REDIS_PORT=6379
 JWT_ACCESS_SECRET=<임의의 긴 문자열>
 JWT_REFRESH_SECRET=<임의의 긴 문자열>
 OPENAI_API_KEY=<본인 키>
+CORS_ORIGIN=http://localhost:5173   # 브라우저에서 API를 호출할 프론트 주소
 ```
 
 `.env.local`, `.env.production`은 `.gitignore`에 포함되어 있습니다.
