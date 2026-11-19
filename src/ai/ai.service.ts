@@ -107,7 +107,6 @@ export class AiService {
       }
 
       return result;
-      JSON.parse(response.output_text);
     } catch (error) {
       this.logger.error(
         'OpenAi API 호출 실패',
