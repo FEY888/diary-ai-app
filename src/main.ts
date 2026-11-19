@@ -3,9 +3,13 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  const corsOrigin = app.get(ConfigService).getOrThrow<string>('CORS_ORIGIN');
+  app.enableCors({ origin: corsOrigin });
 
   const config = new DocumentBuilder()
     .setTitle('Diary AI API')
