@@ -8,6 +8,7 @@ import OpenAI from 'openai';
 import { DiaryAnalysisResult } from './types/diary-analysis-result.type';
 
 const PRIMARY_EMOTION_MAX_LENGTH = 50;
+const AI_MODEL = 'gpt-5.6-luna';
 
 @Injectable()
 export class AiService {
@@ -23,9 +24,11 @@ export class AiService {
   }
 
   async analyzeDiary(content: string): Promise<DiaryAnalysisResult> {
+    const startTime = Date.now();
+
     try {
       const response = await this.openai.responses.create({
-        model: 'gpt-5.6-luna',
+        model: AI_MODEL,
 
         instructions: `
 너는 사용자의 개인 일기를 분석하는 AI다.
@@ -100,6 +103,12 @@ export class AiService {
         },
       });
 
+      const durationMs = Date.now() - startTime;
+      const usage = response.usage;
+      this.logger.log(
+        `AI 분석 완료 model=${AI_MODEL} inputTokens=${usage?.input_tokens} outputTokens=${usage?.output_tokens} totalTokens=${usage?.total_tokens} ${durationMs}ms`,
+      );
+
       const result: DiaryAnalysisResult = JSON.parse(response.output_text);
 
       if (result.primaryEmotion.length > PRIMARY_EMOTION_MAX_LENGTH) {
@@ -109,7 +118,7 @@ export class AiService {
       return result;
     } catch (error) {
       this.logger.error(
-        'OpenAi API 호출 실패',
+        `OpenAI API 호출 실패 (${Date.now() - startTime}ms)`,
         error instanceof Error ? error.stack : String(error),
       );
 
