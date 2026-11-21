@@ -27,7 +27,7 @@
 | 배포·운영 | AWS EC2·RDS, Docker Compose, Sentry, GitHub Actions |
 | 테스트 | Jest, Supertest |
 
-Flutter 앱은 NestJS API를 호출합니다. API는 다이어리와 분석 결과를 PostgreSQL에 저장하고, 사용자별 AI 호출 횟수는 Redis에 저장합니다. DB 구조는 TypeORM 마이그레이션으로 관리합니다.
+API는 다이어리와 분석 결과를 PostgreSQL에 저장하고, 사용자별 AI 호출 횟수는 Redis에 저장합니다. DB 구조는 TypeORM 마이그레이션으로 관리합니다.
 
 ## API 확인
 
