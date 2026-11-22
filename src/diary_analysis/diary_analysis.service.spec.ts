@@ -56,6 +56,7 @@ describe('DiaryAnalysisService', () => {
     repositoryMock.findOne.mockImplementation(async () => ({
       id: 4,
       summary: '기존 분석 결과',
+      reply: null,
       primaryEmotion: '행복',
       keywords: ['기분'],
       concerns: [],
@@ -70,6 +71,7 @@ describe('DiaryAnalysisService', () => {
     // Then
     expect(aiServiceMock.analyzeDiary).not.toHaveBeenCalled();
     expect(result.summary).toBe('기존 분석 결과');
+    expect(result.reply).toBeNull();
   });
 
   // 다이어리의 기존 AI 분석이 없을 때 OpenAI를 호출하고 분석 결과를 저장하는 테스트
@@ -83,6 +85,7 @@ describe('DiaryAnalysisService', () => {
 
     aiServiceMock.analyzeDiary.mockImplementation(async () => ({
       summary: '내일도 기분이 좋을 것 같다',
+      reply: '새로운 내용 분석 후 답변',
       primaryEmotion: '행복',
       keywords: ['행복', '기분'],
       concerns: [],
@@ -103,6 +106,11 @@ describe('DiaryAnalysisService', () => {
     expect(aiServiceMock.analyzeDiary).toHaveBeenCalledTimes(1);
     expect(repositoryMock.create).toHaveBeenCalledTimes(1);
     expect(repositoryMock.save).toHaveBeenCalledTimes(1);
+    expect(repositoryMock.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reply: '새로운 내용 분석 후 답변',
+      }),
+    );
   });
 
   it('다른 사람의 다이어리면 AI분석을 호출하지 않는다.', async () => {
@@ -154,6 +162,7 @@ describe('DiaryAnalysisService', () => {
 
     aiServiceMock.analyzeDiary.mockImplementation(async () => ({
       summary: '기분 좋은 하루',
+      reply: '내용 분석 후 답변',
       primaryEmotion: '행복',
       keywords: ['행복'],
       concerns: [],

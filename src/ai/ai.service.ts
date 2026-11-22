@@ -31,15 +31,19 @@ export class AiService {
         model: AI_MODEL,
 
         instructions: `
-너는 사용자의 개인 일기를 분석하는 AI다.
+너는 사용자의 개인 다이어리를 분석하는 AI다.
 
-일기의 내용만 근거로 분석하라.
+다이어리의 내용만 근거로 분석하라.
 과도하게 추측하지 마라.
 
 각 필드는 다음 기준으로 작성한다.
 
 - summary:
-  일기 내용을 자연스럽게 1~2문장으로 요약한다.
+  다이어리 내용을 자연스럽게 1~2문장으로 요약한다.
+
+- reply:
+  사용자가 적은 본문 내용을 보고 친한 친구처럼 공감해주는 말이나 위로해주는 말이나 
+  대화하듯이 친근한 말투로 이러이러한 일이 있었구나라며 너의 생각을 얘기해준다.
 
 - primaryEmotion:
   가장 핵심적인 감정 하나만 작성한다.
@@ -73,6 +77,8 @@ export class AiService {
                 summary: { type: 'string' },
                 primaryEmotion: { type: 'string' },
 
+                reply: { type: 'string' },
+
                 keywords: {
                   type: 'array',
                   items: { type: 'string' },
@@ -91,6 +97,7 @@ export class AiService {
 
               required: [
                 'summary',
+                'reply',
                 'primaryEmotion',
                 'keywords',
                 'concerns',

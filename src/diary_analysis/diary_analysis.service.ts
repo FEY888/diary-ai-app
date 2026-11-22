@@ -137,6 +137,7 @@ export class DiaryAnalysisService {
     return {
       id: analysis.id,
       summary: analysis.summary,
+      reply: analysis.reply,
       primaryEmotion: analysis.primaryEmotion,
       keywords: analysis.keywords ?? [],
       concerns: analysis.concerns ?? [],

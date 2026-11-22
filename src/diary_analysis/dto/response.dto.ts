@@ -1,49 +1,55 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from '@nestjs/swagger';
 
 export class DiaryAnalysisResponseDto {
-    @ApiProperty({
-        description: 'AI 분석 ID',
-        example: 1,
-    })
-    id!: number;
+  @ApiProperty({
+    description: 'AI 분석 ID',
+    example: 1,
+  })
+  id!: number;
 
-    @ApiProperty({
-        description: '다이어리 본문 내용 요약',
-        example: '오늘은 전반적으로 알찬 하루였다.',
-    })
-    summary!: string;
+  @ApiProperty({
+    description: '다이어리 본문 내용 요약',
+    example: '오늘은 전반적으로 알찬 하루였다.',
+  })
+  summary!: string;
 
-    @ApiProperty({
-        description: '다이어리 내용 속 주요 감정',
-        example: '행복',
-    })
-    primaryEmotion!: string;
+  @ApiProperty({
+    description: '다이어리 본문 내용 분석 후 답변',
+    example: 'AI 답변 내용',
+    nullable: true,
+  })
+  reply!: string | null;
 
-    @ApiProperty({
-        description: '다이어리 내용 속 주요 키워드',
-        example: ['행복', '휴식', '공부'],
-        type: [String],
-    })
-    keywords!: string[];
+  @ApiProperty({
+    description: '다이어리 내용 속 주요 감정',
+    example: '행복',
+  })
+  primaryEmotion!: string;
 
-    @ApiProperty({
-        description: '다이어리 내용 속 걱정거리',
-        example: [],
-        type: [String],
-    })
-    concerns!: string[];
+  @ApiProperty({
+    description: '다이어리 내용 속 주요 키워드',
+    example: ['행복', '휴식', '공부'],
+    type: [String],
+  })
+  keywords!: string[];
 
-    @ApiProperty({
-        description: '다이어리에서 드러나는 심리적·현실적 욕구',
-        example: ['휴식', '성장'],
-        type: [String],
-    })
-    needs!: string[];
+  @ApiProperty({
+    description: '다이어리 내용 속 걱정거리',
+    example: [],
+    type: [String],
+  })
+  concerns!: string[];
 
-    @ApiProperty({
-        description: '다이어리 내용 AI 분석 생성 시각',
-        example: '2026-10-18T22:30:00.000Z',
-    })
-    createdAt!: Date;
+  @ApiProperty({
+    description: '다이어리에서 드러나는 심리적·현실적 욕구',
+    example: ['휴식', '성장'],
+    type: [String],
+  })
+  needs!: string[];
 
+  @ApiProperty({
+    description: '다이어리 내용 AI 분석 생성 시각',
+    example: '2026-10-18T22:30:00.000Z',
+  })
+  createdAt!: Date;
 }
