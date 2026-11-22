@@ -9,6 +9,11 @@
 - OpenAI로 다이어리 분석 생성·조회. 저장된 결과가 있으면 다시 사용합니다.
 - 본문이 바뀌면 기존 분석을 삭제하고, 제목이나 날짜만 바꾸면 분석은 유지합니다.
 
+## 웹 화면 예시
+
+React 웹에서 데모 화면을 둘러본 뒤, 실제 NestJS API에 로그인해 다이어리를 조회하고 AI 답변과 분석 결과를 확인하는 흐름입니다.
+![Diary AI 웹 데모에서 실제 API 로그인과 AI 분석 결과까지](./docs/images/diary-web-flow.gif)
+
 ## 작업하면서 해결한 문제
 
 - **같은 다이어리에 분석 요청이 겹칠 때** PostgreSQL의 조건부 `UPDATE`로 한 요청만 분석을 시작하게 했습니다. Redis 도입 전 테스트 DB에서 동시 요청 10건을 보내, 가짜 OpenAI 호출 1회와 나머지 9건의 `409`를 확인했습니다.
@@ -19,13 +24,13 @@
 
 ## 사용 기술
 
-| 구분 | 기술 |
-| --- | --- |
-| API | TypeScript, NestJS, JWT, Swagger |
-| 데이터 | PostgreSQL, TypeORM, Redis |
-| AI | OpenAI Responses API, JSON Schema |
+| 구분      | 기술                                                |
+| --------- | --------------------------------------------------- |
+| API       | TypeScript, NestJS, JWT, Swagger                    |
+| 데이터    | PostgreSQL, TypeORM, Redis                          |
+| AI        | OpenAI Responses API, JSON Schema                   |
 | 배포·운영 | AWS EC2·RDS, Docker Compose, Sentry, GitHub Actions |
-| 테스트 | Jest, Supertest |
+| 테스트    | Jest, Supertest                                     |
 
 API는 다이어리와 분석 결과를 PostgreSQL에 저장하고, 사용자별 AI 호출 횟수는 Redis에 저장합니다. DB 구조는 TypeORM 마이그레이션으로 관리합니다.
 
@@ -33,14 +38,14 @@ API는 다이어리와 분석 결과를 PostgreSQL에 저장하고, 사용자별
 
 서버를 켜고 [Swagger](http://localhost:3000/api)를 열면 전체 API를 확인할 수 있습니다. 인증이 필요한 요청에는 `Authorization: Bearer <token>` 헤더를 보냅니다.
 
-| API | 설명 |
-| --- | --- |
-| `POST /auth/signup`, `POST /auth/signin` | 회원가입, 로그인 |
-| `POST /auth/refresh`, `POST /auth/signout` | 토큰 재발급, 로그아웃 |
-| `GET /users/me`, `PATCH /users/me` | 내 정보 조회, 닉네임 수정 |
-| `POST /diaries`, `GET /diaries?page=1&take=20` | 다이어리 작성, 내 다이어리 목록 |
-| `GET /diaries/:id`, `PATCH /diaries/:id`, `DELETE /diaries/:id` | 다이어리 상세 조회, 수정, 삭제 |
-| `POST /diaries/:diaryId/analysis`, `GET /diaries/:diaryId/analysis` | 분석 생성, 저장된 분석 조회 |
+| API                                                                 | 설명                            |
+| ------------------------------------------------------------------- | ------------------------------- |
+| `POST /auth/signup`, `POST /auth/signin`                            | 회원가입, 로그인                |
+| `POST /auth/refresh`, `POST /auth/signout`                          | 토큰 재발급, 로그아웃           |
+| `GET /users/me`, `PATCH /users/me`                                  | 내 정보 조회, 닉네임 수정       |
+| `POST /diaries`, `GET /diaries?page=1&take=20`                      | 다이어리 작성, 내 다이어리 목록 |
+| `GET /diaries/:id`, `PATCH /diaries/:id`, `DELETE /diaries/:id`     | 다이어리 상세 조회, 수정, 삭제  |
+| `POST /diaries/:diaryId/analysis`, `GET /diaries/:diaryId/analysis` | 분석 생성, 저장된 분석 조회     |
 
 ![Swagger API 목록](./docs/images/swagger-overview.png)
 
