@@ -16,6 +16,7 @@ import { DiaryResponseDto } from '../src/diary/dto/diary-response.dto';
 import { DiaryAnalysisResponseDto } from '../src/diary_analysis/dto/response.dto';
 
 const TEST_DATABASE = 'diary_test';
+const expectedReply = '본문 내용 분석 답변';
 
 describe('Diary E2e', () => {
   let app: INestApplication;
@@ -38,6 +39,7 @@ describe('Diary E2e', () => {
       .useValue({
         analyzeDiary: async () => ({
           summary: '요약',
+          reply: expectedReply,
           primaryEmotion: '기쁨',
           keywords: [],
           concerns: [],
@@ -186,9 +188,21 @@ describe('Diary E2e', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
+    // 분석 저장 확인
+    const saveAnalysisResponse = await request(app.getHttpServer())
+      .get(`/diaries/${diaryId}/analysis`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
     // 가짜 AI 결과가 나왔는지 확인
     expect(
       (analysisResponse.body as DiaryAnalysisResponseDto).primaryEmotion,
     ).toBe('기쁨');
+    expect((analysisResponse.body as DiaryAnalysisResponseDto).reply).toBe(
+      expectedReply,
+    );
+    expect((saveAnalysisResponse.body as DiaryAnalysisResponseDto).reply).toBe(
+      expectedReply,
+    );
   });
 });
