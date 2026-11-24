@@ -8,14 +8,16 @@ import OpenAI from 'openai';
 import { DiaryAnalysisResult } from './types/diary-analysis-result.type';
 
 const PRIMARY_EMOTION_MAX_LENGTH = 50;
-const AI_MODEL = 'gpt-5.6-luna';
 
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly openai: OpenAI;
+  private readonly model: string;
 
   constructor(private readonly configService: ConfigService) {
+    this.model = this.configService.getOrThrow<string>('OPENAI_MODEL');
+
     this.openai = new OpenAI({
       apiKey: this.configService.getOrThrow<string>('OPENAI_API_KEY'),
       timeout: 60_000,
@@ -28,7 +30,7 @@ export class AiService {
 
     try {
       const response = await this.openai.responses.create({
-        model: AI_MODEL,
+        model: this.model,
 
         instructions: `
 너는 사용자의 개인 다이어리를 분석하는 AI다.
@@ -115,7 +117,7 @@ export class AiService {
       const durationMs = Date.now() - startTime;
       const usage = response.usage;
       this.logger.log(
-        `AI 분석 완료 model=${AI_MODEL} inputTokens=${usage?.input_tokens} outputTokens=${usage?.output_tokens} totalTokens=${usage?.total_tokens} ${durationMs}ms`,
+        `AI 분석 완료 model=${this.model} inputTokens=${usage?.input_tokens} outputTokens=${usage?.output_tokens} totalTokens=${usage?.total_tokens} ${durationMs}ms`,
       );
 
       const result: DiaryAnalysisResult = JSON.parse(response.output_text);
